@@ -1,0 +1,626 @@
+openapi: 3.0.0
+info:
+  title: TomiLomos API
+  description: Multi-tenant business management system for gastronomy
+  version: 1.0.0
+  contact:
+    name: TomiLomos Support
+    email: support@tomilomos.com
+
+servers:
+  - url: http://localhost:8000
+    description: Development server
+  - url: https://api.tomilomos.com
+    description: Production server
+
+paths:
+  /api/v1/raw-materials:
+    post:
+      summary: Create a new raw material
+      description: Create a new raw material (ingredient) in the tenant's inventory
+      operationId: createRawMaterial
+      tags:
+        - Raw Materials
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RawMaterialCreate'
+      responses:
+        '201':
+          description: Raw material created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RawMaterialRead'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '401':
+          description: Unauthorized - invalid or missing JWT token
+        '500':
+          description: Internal server error
+
+    get:
+      summary: List raw materials
+      description: Retrieve all raw materials for the tenant with pagination support
+      operationId: listRawMaterials
+      tags:
+        - Raw Materials
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: skip
+          in: query
+          required: false
+          description: Number of records to skip
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of records to return
+          schema:
+            type: integer
+            default: 100
+            minimum: 1
+            maximum: 1000
+      responses:
+        '200':
+          description: List of raw materials
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RawMaterialRead'
+        '401':
+          description: Unauthorized
+
+  /api/v1/raw-materials/{id}:
+    get:
+      summary: Get a specific raw material
+      description: Retrieve a specific raw material by ID
+      operationId: getRawMaterial
+      tags:
+        - Raw Materials
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Raw material ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Raw material found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RawMaterialRead'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Raw material not found
+
+    put:
+      summary: Update a raw material
+      description: Update fields of a raw material (name, unit, cost, supplier)
+      operationId: updateRawMaterial
+      tags:
+        - Raw Materials
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Raw material ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RawMaterialUpdate'
+      responses:
+        '200':
+          description: Raw material updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RawMaterialRead'
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+        '404':
+          description: Raw material not found
+
+    delete:
+      summary: Delete a raw material
+      description: Delete a raw material permanently
+      operationId: deleteRawMaterial
+      tags:
+        - Raw Materials
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Raw material ID
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Raw material deleted successfully
+        '401':
+          description: Unauthorized
+        '404':
+          description: Raw material not found
+
+  /api/v1/raw-materials/{id}/add-stock:
+    post:
+      summary: Add stock to a raw material
+      description: Add stock to a raw material (e.g., receive purchase)
+      operationId: addStock
+      tags:
+        - Raw Materials
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Raw material ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StockAdjustmentRequest'
+      responses:
+        '200':
+          description: Stock added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RawMaterialRead'
+        '400':
+          description: Validation error or insufficient quantity
+        '401':
+          description: Unauthorized
+        '404':
+          description: Raw material not found
+
+  /api/v1/raw-materials/{id}/remove-stock:
+    post:
+      summary: Remove stock from a raw material
+      description: Remove stock from a raw material (e.g., deduct for sale or recipe)
+      operationId: removeStock
+      tags:
+        - Raw Materials
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Raw material ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StockAdjustmentRequest'
+      responses:
+        '200':
+          description: Stock removed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RawMaterialRead'
+        '400':
+          description: Validation error or insufficient stock
+        '401':
+          description: Unauthorized
+        '404':
+          description: Raw material not found
+
+  /api/v1/raw-materials/{id}/stock:
+    get:
+      summary: Get stock level
+      description: Retrieve only the current stock level of a raw material
+      operationId: getStockLevel
+      tags:
+        - Raw Materials
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Raw material ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Current stock level
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockLevel'
+        '401':
+           description: Unauthorized
+         '404':
+           description: Raw material not found
+
+  /api/v1/products/{id}/cost:
+    get:
+      summary: Calculate product cost
+      description: |
+        Calculate the total cost of a product based on its pricing mode:
+        - **Recipe-based**: If the product is linked to a recipe, cost is calculated from current ingredient costs
+        - **Manual**: If the product has no recipe link, cost_source is "manual"
+        
+        All costs use DECIMAL(10,2) precision with half-up rounding.
+        Respects multi-tenant isolation - returns 404 for products belonging to other tenants.
+      operationId: getProductCost
+      tags:
+        - Products
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Product UUID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Product cost calculated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductCostResponse'
+              examples:
+                recipeBasedCost:
+                  summary: Recipe-based product cost
+                  value:
+                    product_id: 550e8400-e29b-41d4-a716-446655440000
+                    total_cost: 45.99
+                    currency: USD
+                    cost_source: recipe
+                    ingredients:
+                      - raw_material_id: 550e8400-e29b-41d4-a716-446655440001
+                        raw_material_name: tomatoes
+                        quantity: 2.5
+                        unit: kg
+                        unit_cost: 12.50
+                        ingredient_total_cost: 31.25
+                      - raw_material_id: 550e8400-e29b-41d4-a716-446655440002
+                        raw_material_name: onions
+                        quantity: 1.0
+                        unit: kg
+                        unit_cost: 3.50
+                        ingredient_total_cost: 3.50
+                      - raw_material_id: 550e8400-e29b-41d4-a716-446655440003
+                        raw_material_name: olive oil
+                        quantity: 0.25
+                        unit: L
+                        unit_cost: 10.99
+                        ingredient_total_cost: 2.75
+                    calculated_at: '2025-05-13T14:30:00Z'
+                manualCost:
+                  summary: Manual pricing product cost
+                  value:
+                    product_id: 550e8400-e29b-41d4-a716-446655440000
+                    total_cost: 0.00
+                    currency: USD
+                    cost_source: manual
+                    ingredients: null
+                    calculated_at: '2025-05-13T14:30:00Z'
+        '400':
+          description: Invalid UUID format for product ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - invalid or missing JWT token
+        '404':
+          description: Product not found (respects multi-tenancy - product belongs to different tenant)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '424':
+          description: Failed Dependency - recipe or raw material missing/deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missingRecipe:
+                  summary: Recipe referenced by product no longer exists
+                  value:
+                    error: RecipeNotFoundError
+                    message: Recipe ... not found in tenant ...
+                    status_code: 424
+                missingRawMaterial:
+                  summary: Raw material referenced in recipe no longer exists
+                  value:
+                    error: RawMaterialNotFoundError
+                    message: Raw material ... referenced in recipe ... no longer exists (deleted)
+                    status_code: 424
+
+components:
+  schemas:
+    ProductCostResponse:
+      type: object
+      required:
+        - product_id
+        - total_cost
+        - currency
+        - cost_source
+        - calculated_at
+      properties:
+        product_id:
+          type: string
+          format: uuid
+          description: UUID of the product
+          example: 550e8400-e29b-41d4-a716-446655440000
+        total_cost:
+          type: string
+          pattern: '^\d+\.\d{2}$'
+          description: Total calculated cost (Decimal with 2 decimal places)
+          example: "45.99"
+        currency:
+          type: string
+          description: Currency code
+          enum: [USD]
+          example: USD
+        cost_source:
+          type: string
+          description: Source of cost calculation
+          enum: [recipe, manual]
+          example: recipe
+        ingredients:
+          type: array
+          nullable: true
+          description: |
+            Itemized ingredient costs (only for recipe-based products, null for manual pricing).
+            For manual pricing, this field is null.
+            For recipe-based products, this array contains one entry per ingredient.
+          items:
+            $ref: '#/components/schemas/IngredientCostDetail'
+          example:
+            - raw_material_id: 550e8400-e29b-41d4-a716-446655440001
+              raw_material_name: tomatoes
+              quantity: 2.5
+              unit: kg
+              unit_cost: 12.50
+              ingredient_total_cost: 31.25
+        calculated_at:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of when the cost was calculated
+          example: '2025-05-13T14:30:00Z'
+    
+    IngredientCostDetail:
+      type: object
+      required:
+        - raw_material_id
+        - raw_material_name
+        - quantity
+        - unit
+        - unit_cost
+        - ingredient_total_cost
+      properties:
+        raw_material_id:
+          type: string
+          format: uuid
+          description: UUID of the raw material
+          example: 550e8400-e29b-41d4-a716-446655440001
+        raw_material_name:
+          type: string
+          description: Name of the raw material
+          example: tomatoes
+        quantity:
+          type: string
+          pattern: '^\d+(\.\d{1,3})?$'
+          description: Quantity of the ingredient used in the recipe
+          example: "2.5"
+        unit:
+          type: string
+          description: Unit of measurement
+          enum: [kg, g, L, mL, units, pieces, boxes]
+          example: kg
+        unit_cost:
+          type: string
+          pattern: '^\d+\.\d{2}$'
+          description: Current cost per unit (Decimal with 2 decimal places)
+          example: "12.50"
+        ingredient_total_cost:
+          type: string
+          pattern: '^\d+\.\d{2}$'
+          description: Quantity × Unit Cost (ingredient total, Decimal with 2 decimal places)
+          example: "31.25"
+    
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+        - status_code
+      properties:
+        error:
+          type: string
+          description: Error type/class name
+          example: ProductNotFoundError
+        message:
+          type: string
+          description: Human-readable error message
+          example: Product ... not found in tenant ...
+        status_code:
+          type: integer
+           description: HTTP status code
+           example: 404
+
+    RawMaterialCreate:
+      type: object
+      required:
+        - name
+        - unit_of_measurement
+        - cost_per_unit
+      properties:
+        name:
+          type: string
+          description: Name of the raw material
+          minLength: 1
+          maxLength: 255
+          example: Tomatoes
+        unit_of_measurement:
+          type: string
+          description: Unit type (kg, g, L, mL, units, pieces, boxes)
+          enum: [kg, g, L, mL, units, pieces, boxes]
+          example: kg
+        cost_per_unit:
+          type: number
+          description: Cost per unit in home currency (DECIMAL(10,2))
+          format: decimal
+          example: 2.50
+        supplier:
+          type: string
+          description: Optional supplier name or reference
+          maxLength: 255
+          example: Local Farm
+
+    RawMaterialUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Name of the raw material
+          minLength: 1
+          maxLength: 255
+        unit_of_measurement:
+          type: string
+          description: Unit type
+          enum: [kg, g, L, mL, units, pieces, boxes]
+        cost_per_unit:
+          type: number
+          description: Cost per unit
+          format: decimal
+        supplier:
+          type: string
+          description: Supplier name or reference
+          maxLength: 255
+
+    RawMaterialRead:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Raw material ID
+        tenant_id:
+          type: string
+          description: Tenant ID
+        name:
+          type: string
+          description: Name of the raw material
+        unit_of_measurement:
+          type: string
+          description: Unit type
+        cost_per_unit:
+          type: number
+          format: decimal
+          description: Cost per unit
+        supplier:
+          type: string
+          description: Supplier name
+        current_stock:
+          type: number
+          format: decimal
+          description: Current stock level
+        created_at:
+          type: string
+          format: date-time
+          description: When the raw material was created
+        updated_at:
+          type: string
+          format: date-time
+          description: When the raw material was last updated
+
+    StockAdjustmentRequest:
+      type: object
+      required:
+        - quantity
+      properties:
+        quantity:
+          type: number
+          format: decimal
+          description: Quantity to add or remove (must be positive)
+          example: 5.50
+        reason:
+          type: string
+          description: Reason for adjustment (e.g., purchase, sale, waste)
+          example: purchase
+
+    StockLevel:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Raw material ID
+        current_stock:
+          type: number
+          format: decimal
+          description: Current stock level
+
+    ValidationError:
+      type: object
+      properties:
+        error:
+          type: string
+          example: ValidationError
+        message:
+          type: string
+          example: Validation failed
+        status_code:
+          type: integer
+          example: 422
+        fields:
+          type: object
+          description: Field-specific error details
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for authentication
+
+tags:
+  - name: Raw Materials
+    description: Raw materials (ingredients) management endpoints
+  - name: Products
+    description: Products (sellable items) management endpoints

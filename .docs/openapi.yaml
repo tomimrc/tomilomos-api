@@ -1,0 +1,143 @@
+openapi: 3.1.0
+info:
+  title: Tomilomos API - Módulo de Inventario
+  version: 1.0.0
+  description: Contrato central para la gestión de materias primas, productos finales y deducción de stock.
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Entorno local de desarrollo
+
+paths:
+  /raw-materials:
+    get:
+      summary: Listar materias primas
+      operationId: listRawMaterials
+      responses:
+        '200':
+          description: Lista de insumos recuperada con éxito.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RawMaterial'
+    post:
+      summary: Crear nueva materia prima
+      operationId: createRawMaterial
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RawMaterialCreate'
+      responses:
+        '201':
+          description: Materia prima creada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RawMaterial'
+
+  /products:
+    post:
+      summary: Crear producto con su receta (escandallo)
+      operationId: createProduct
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductCreate'
+      responses:
+        '201':
+          description: Producto y receta creados con éxito.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+
+components:
+  schemas:
+    UnitMeasure:
+      type: string
+      enum: [gr, kg, lt, ml, un]
+      description: Unidad de medida estándar para el insumo.
+
+    RawMaterialCreate:
+      type: object
+      required:
+        - name
+        - unit_measure
+        - cost_per_unit
+        - current_stock
+      properties:
+        name:
+          type: string
+          example: Pan Ciabatta
+        unit_measure:
+          $ref: '#/components/schemas/UnitMeasure'
+        cost_per_unit:
+          type: number
+          format: float
+          description: Costo por unidad de medida.
+          example: 150.50
+        current_stock:
+          type: number
+          format: float
+          example: 100
+
+    RawMaterial:
+      allOf:
+        - $ref: '#/components/schemas/RawMaterialCreate'
+        - type: object
+          required:
+            - id
+          properties:
+            id:
+              type: string
+              format: uuid
+
+    RecipeItemCreate:
+      type: object
+      required:
+        - raw_material_id
+        - quantity_needed
+      properties:
+        raw_material_id:
+          type: string
+          format: uuid
+        quantity_needed:
+          type: number
+          format: float
+          description: Cantidad del insumo requerida para un producto.
+          example: 200 # Ejemplo: 200 gramos de carne
+
+    ProductCreate:
+      type: object
+      required:
+        - name
+        - sale_price
+        - recipe
+      properties:
+        name:
+          type: string
+          example: Lomito Completo
+        sale_price:
+          type: number
+          format: float
+          example: 4500.00
+        recipe:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecipeItemCreate'
+
+    Product:
+      allOf:
+        - $ref: '#/components/schemas/ProductCreate'
+        - type: object
+          required:
+            - id
+          properties:
+            id:
+              type: string
+              format: uuid
